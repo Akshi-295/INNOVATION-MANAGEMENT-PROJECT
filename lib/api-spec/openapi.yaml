@@ -1,0 +1,504 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Smart Electricity Waste Detection API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: devices
+    description: Device management
+  - name: readings
+    description: Energy readings
+  - name: alerts
+    description: Waste alerts
+  - name: dashboard
+    description: Dashboard summary data
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /devices:
+    get:
+      operationId: listDevices
+      tags: [devices]
+      summary: List all monitored devices
+      responses:
+        "200":
+          description: List of devices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Device"
+    post:
+      operationId: createDevice
+      tags: [devices]
+      summary: Register a new device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDeviceBody"
+      responses:
+        "201":
+          description: Created device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+
+  /devices/{id}:
+    get:
+      operationId: getDevice
+      tags: [devices]
+      summary: Get a specific device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Device details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "404":
+          description: Not found
+    put:
+      operationId: updateDevice
+      tags: [devices]
+      summary: Update a device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDeviceBody"
+      responses:
+        "200":
+          description: Updated device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+    delete:
+      operationId: deleteDevice
+      tags: [devices]
+      summary: Remove a device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /readings:
+    get:
+      operationId: listReadings
+      tags: [readings]
+      summary: List energy readings
+      parameters:
+        - name: deviceId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: List of readings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Reading"
+    post:
+      operationId: createReading
+      tags: [readings]
+      summary: Record a new energy reading
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReadingBody"
+      responses:
+        "201":
+          description: Created reading
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reading"
+
+  /alerts:
+    get:
+      operationId: listAlerts
+      tags: [alerts]
+      summary: List waste alerts
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [active, resolved, dismissed]
+      responses:
+        "200":
+          description: List of alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Alert"
+
+  /alerts/{id}/resolve:
+    put:
+      operationId: resolveAlert
+      tags: [alerts]
+      summary: Resolve an alert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Resolved alert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Alert"
+
+  /alerts/{id}/dismiss:
+    put:
+      operationId: dismissAlert
+      tags: [alerts]
+      summary: Dismiss an alert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dismissed alert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Alert"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard overview stats
+      responses:
+        "200":
+          description: Summary stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/consumption-chart:
+    get:
+      operationId: getConsumptionChart
+      tags: [dashboard]
+      summary: Get hourly/daily consumption data for chart
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [day, week, month]
+            default: week
+      responses:
+        "200":
+          description: Chart data points
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ConsumptionDataPoint"
+
+  /dashboard/waste-by-device:
+    get:
+      operationId: getWasteByDevice
+      tags: [dashboard]
+      summary: Get waste breakdown by device
+      responses:
+        "200":
+          description: Waste breakdown per device
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeviceWaste"
+
+  /dashboard/savings:
+    get:
+      operationId: getSavingsSummary
+      tags: [dashboard]
+      summary: Get estimated cost savings from resolved waste
+      responses:
+        "200":
+          description: Savings data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavingsSummary"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    Device:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        location:
+          type: string
+        type:
+          type: string
+          enum: [hvac, lighting, appliance, ev_charger, industrial, other]
+        status:
+          type: string
+          enum: [online, offline, warning]
+        powerRatingW:
+          type: number
+          description: Rated power in watts
+        currentWatts:
+          type: number
+          description: Current consumption in watts
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, location, type, status, powerRatingW, currentWatts, createdAt]
+
+    CreateDeviceBody:
+      type: object
+      properties:
+        name:
+          type: string
+        location:
+          type: string
+        type:
+          type: string
+          enum: [hvac, lighting, appliance, ev_charger, industrial, other]
+        powerRatingW:
+          type: number
+      required: [name, location, type, powerRatingW]
+
+    UpdateDeviceBody:
+      type: object
+      properties:
+        name:
+          type: string
+        location:
+          type: string
+        type:
+          type: string
+          enum: [hvac, lighting, appliance, ev_charger, industrial, other]
+        status:
+          type: string
+          enum: [online, offline, warning]
+        powerRatingW:
+          type: number
+
+    Reading:
+      type: object
+      properties:
+        id:
+          type: integer
+        deviceId:
+          type: integer
+        deviceName:
+          type: string
+        wattsConsumed:
+          type: number
+        kwhConsumed:
+          type: number
+        isWasteful:
+          type: boolean
+        recordedAt:
+          type: string
+          format: date-time
+      required: [id, deviceId, deviceName, wattsConsumed, kwhConsumed, isWasteful, recordedAt]
+
+    CreateReadingBody:
+      type: object
+      properties:
+        deviceId:
+          type: integer
+        wattsConsumed:
+          type: number
+      required: [deviceId, wattsConsumed]
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: integer
+        deviceId:
+          type: integer
+        deviceName:
+          type: string
+        type:
+          type: string
+          enum: [overconsumption, idle_waste, off_hours_usage, spike_detected, threshold_exceeded]
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        message:
+          type: string
+        status:
+          type: string
+          enum: [active, resolved, dismissed]
+        estimatedWasteKwh:
+          type: number
+        estimatedCostUsd:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, deviceId, deviceName, type, severity, message, status, estimatedWasteKwh, estimatedCostUsd, createdAt]
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalDevices:
+          type: integer
+        onlineDevices:
+          type: integer
+        activeAlerts:
+          type: integer
+        criticalAlerts:
+          type: integer
+        totalConsumptionKwhToday:
+          type: number
+        wasteKwhToday:
+          type: number
+        estimatedDailyCostUsd:
+          type: number
+        estimatedMonthlySavingsUsd:
+          type: number
+        wastePercentage:
+          type: number
+      required:
+        - totalDevices
+        - onlineDevices
+        - activeAlerts
+        - criticalAlerts
+        - totalConsumptionKwhToday
+        - wasteKwhToday
+        - estimatedDailyCostUsd
+        - estimatedMonthlySavingsUsd
+        - wastePercentage
+
+    ConsumptionDataPoint:
+      type: object
+      properties:
+        label:
+          type: string
+        totalKwh:
+          type: number
+        wasteKwh:
+          type: number
+        costUsd:
+          type: number
+      required: [label, totalKwh, wasteKwh, costUsd]
+
+    DeviceWaste:
+      type: object
+      properties:
+        deviceId:
+          type: integer
+        deviceName:
+          type: string
+        location:
+          type: string
+        wasteKwh:
+          type: number
+        wastePercentage:
+          type: number
+        estimatedWasteCostUsd:
+          type: number
+      required: [deviceId, deviceName, location, wasteKwh, wastePercentage, estimatedWasteCostUsd]
+
+    SavingsSummary:
+      type: object
+      properties:
+        totalSavedKwh:
+          type: number
+        totalSavedUsd:
+          type: number
+        resolvedAlertsCount:
+          type: integer
+        thisMonthSavedUsd:
+          type: number
+        lastMonthSavedUsd:
+          type: number
+        savingsTrend:
+          type: number
+          description: Percentage change vs last month
+      required:
+        - totalSavedKwh
+        - totalSavedUsd
+        - resolvedAlertsCount
+        - thisMonthSavedUsd
+        - lastMonthSavedUsd
+        - savingsTrend
